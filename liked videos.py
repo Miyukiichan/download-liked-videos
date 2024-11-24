@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import subprocess
 import yt_dlp
+import html
 
 # Parse args
 parser = argparse.ArgumentParser()
@@ -47,27 +48,31 @@ if args.store is not None:
     filtered = []
     for video in input:
         name = video["Name"]
+        name = html.unescape(name)
+        name = yt_dlp.utils.sanitize_filename(name)
         if name in storedFiles: 
             print("Skipping existing video: " + name)
             continue
         filtered.append(video)
     input = filtered
-if len(input) = 0:
+if len(input) == 0:
     print("No videos to process")
     sys.exit()
     
 # Download videos
-urls = []
 for video in input:
-    urls.append(video["URL"])
-try:
-    ydl_opts = {
-        'outtmpl': os.path.join(args.output, "%(title)s.%(ext)s"),
-        'ignore-errors': True,
-        'continue': True
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download(urls)
-except Exception as e:
-    with open(logPath, "a") as logFile:
-        logFile.write(str(e) + "\n")
+    try:
+        url = video["URL"]
+        name = video["Name"]
+        name = html.unescape(name)
+        name = yt_dlp.utils.sanitize_filename(name)
+        ydl_opts = {
+            'outtmpl': os.path.join(args.output, "%(title)s.%(ext)s"),
+            'ignore-errors': True,
+            'continue': True
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download(url)
+    except Exception as e:
+        with open(logPath, "a") as logFile:
+            logFile.write("Error downloading video: " + name + "\n" + str(e) + "\n\n")
